@@ -1,41 +1,12 @@
 import { grabToken } from "./token.ts";
+import type { Location, Menu, MenuItem, Merchant } from "./types.ts";
 
 const PORTAL = "https://portal.grab.com/foodweb/guest/v2";
 const UA =
   "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:133.0) Gecko/20100101 Firefox/133.0";
 
-/** Delivery address Grab resolves everything against. */
-export type Location = {
-  latitude: number;
-  longitude: number;
-  address: string;
-  countryCode: string;
-};
-
 /**
- * Grab scopes every result to the delivery address, so a wrong location gives
- * silently wrong answers — there is no safe default, hence the hard failure.
- */
-export function location(): Location {
-  const lat = Deno.env.get("GRAB_LAT");
-  const lng = Deno.env.get("GRAB_LNG");
-  if (!lat || !lng) {
-    throw new Error(
-      "GRAB_LAT and GRAB_LNG are required (see .env.example).\n" +
-        "Get them from food.grab.com: set your delivery address, then read " +
-        "latitude/longitude out of the `location` cookie.",
-    );
-  }
-  return {
-    latitude: Number(lat),
-    longitude: Number(lng),
-    address: Deno.env.get("GRAB_ADDRESS") ?? `${lat},${lng}`,
-    countryCode: Deno.env.get("GRAB_COUNTRY") ?? "ID",
-  };
-}
-
-/**
- * A 401 means our guest session was revoked — Grab allows one per identity, so
+ * A 401 means our guest session was revoked; Grab allows one per identity, so
  * any other browser logging in as guest kicks us out. Mint a fresh token and
  * retry once; only a second 401 is a real failure.
  */
@@ -49,6 +20,9 @@ async function call(
       headers: {
         "User-Agent": UA,
         "Accept": "application/json",
+        // Note: this does not control menu language; merchants publish their
+        // own item names, so some menus come back in English regardless.
+        "Accept-Language": "id",
         "X-Country-Code": init.country,
         "Cookie": `passenger_authn_token=${await grabToken(attempt === 1)}`,
         ...(init.body ? { "Content-Type": "application/json" } : {}),
@@ -65,23 +39,11 @@ async function call(
   throw new Error("unreachable");
 }
 
-export type Merchant = {
-  id: string;
-  name: string;
-  open: boolean;
-  hours: string;
-  cuisine: string[];
-  distanceKm: number;
-  rating: number | null;
-  votes: number;
-  promo: string;
-  etaMinutes: number | null;
-};
-
 // deno-lint-ignore no-explicit-any
 function toMerchant(m: any): Merchant {
   const b = m.merchantBrief ?? {};
   return {
+    source: "grab",
     id: m.id,
     name: m.address?.name ?? "(tanpa nama)",
     open: b.openHours?.open === true,
@@ -90,7 +52,6 @@ function toMerchant(m: any): Merchant {
     distanceKm: b.distanceInKm ?? 0,
     rating: b.rating ?? null,
     votes: b.vote_count ?? 0,
-    promo: b.promo?.description ?? "",
     etaMinutes: m.estimatedDeliveryTime ?? null,
   };
 }
@@ -139,21 +100,6 @@ export async function search(
   return out.slice(0, limit);
 }
 
-export type MenuItem = {
-  name: string;
-  price: string;
-  available: boolean;
-  description: string;
-};
-export type Menu = {
-  id: string;
-  name: string;
-  open: boolean;
-  hours: string;
-  address: string;
-  categories: { name: string; items: MenuItem[] }[];
-};
-
 export async function menu(loc: Location, merchantId: string): Promise<Menu> {
   const q = `?latlng=${loc.latitude},${loc.longitude}`;
   // deno-lint-ignore no-explicit-any
@@ -163,6 +109,7 @@ export async function menu(loc: Location, merchantId: string): Promise<Menu> {
   });
   const m = res.merchant;
   return {
+    source: "grab",
     id: m.ID,
     name: m.name,
     open: m.openingHours?.open === true,
@@ -174,8 +121,10 @@ export async function menu(loc: Location, merchantId: string): Promise<Menu> {
       // deno-lint-ignore no-explicit-any
       items: (c.items ?? []).map((i: any): MenuItem => ({
         name: i.name,
-        price: i.discountedPriceV2?.amountDisplay ??
-          i.priceV2?.amountDisplay ?? "?",
+        priceRp: Math.round(
+          (i.discountedPriceV2?.amountInMinor ?? i.priceV2?.amountInMinor ??
+            i.priceInMinorUnit ?? 0) / 100,
+        ),
         available: i.available !== false,
         description: i.description ?? "",
       })),

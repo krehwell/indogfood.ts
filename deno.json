@@ -1,7 +1,7 @@
 {
   "tasks": {
-    "resto": "deno run --allow-net --allow-env --allow-read --allow-write --allow-run --env-file restaurants.ts",
-    "menu": "deno run --allow-net --allow-env --allow-read --allow-write --allow-run --env-file menu.ts",
+    "resto": "deno run --allow-net --allow-env --allow-read --allow-write --allow-run --unstable-http --env-file restaurants.ts",
+    "menu": "deno run --allow-net --allow-env --allow-read --allow-write --allow-run --unstable-http --env-file menu.ts",
     "test": "deno test --allow-read --allow-env --allow-write"
   },
   "compilerOptions": { "strict": true }

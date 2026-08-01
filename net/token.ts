@@ -1,6 +1,15 @@
 import { mintToken } from "./browserToken.ts";
 
-const CACHE = new URL("../.cache/grab-token.json", import.meta.url).pathname;
+/**
+ * Per-user cache dir, not one inside the repo: the checkout may be read-only
+ * for the account actually running this (e.g. an agent user reading another
+ * user's copy), and a silently unwritable cache means re-minting a token on
+ * every single run.
+ */
+const CACHE_DIR = `${
+  Deno.env.get("XDG_CACHE_HOME") ?? `${Deno.env.get("HOME")}/.cache`
+}/indogfood`;
+const CACHE = `${CACHE_DIR}/grab-token.json`;
 
 /**
  * Re-mint this long before expiry. Grab issues 30-day tokens, so a day of
@@ -31,18 +40,20 @@ function cached(): string | null {
 
 function store(token: string) {
   try {
-    Deno.mkdirSync(new URL("../.cache", import.meta.url).pathname, {
-      recursive: true,
-    });
+    Deno.mkdirSync(CACHE_DIR, { recursive: true });
     Deno.writeTextFileSync(CACHE, JSON.stringify({ token }, null, 2));
-  } catch { /* cache is an optimisation, not a requirement */ }
+  } catch (e) {
+    // Not fatal, but without a cache every run launches a browser and mints a
+    // new session, so say so instead of silently degrading.
+    console.error(`warning: could not cache token in ${CACHE}: ${e}`);
+  }
 }
 
 let inMemory: string | null = null;
 
 /**
  * A usable guest token. Only the credential is cached, never any food data,
- * so results can't go stale — a cached token still fetches live answers.
+ * so results can't go stale; a cached token still fetches live answers.
  *
  * Pass force=true after a 401: Grab allows one guest session per identity, so
  * another browser logging in revokes ours and we simply mint a new one.
