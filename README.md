@@ -27,7 +27,7 @@ deno task menu <id> --all        # include out-of-stock items
 ```
 
 Restaurant IDs come from `deno task resto`. Output format and agent-facing usage
-live in [AGENT.md](AGENT.md), that's the file to feed the agent.
+live in [AGENTS.md](AGENTS.md), that's the file to feed the agent.
 
 Categories are the apps' own free-text tags, so one namespace covers cuisine
 (`Masakan Jepang`), dish (`Ayam Geprek`) and type (`Sehat`, `Sarapan`,
@@ -150,6 +150,7 @@ net/browserToken.ts   headless Chromium over CDP -> a fresh Grab guest token
 net/token.ts          Grab token cache + expiry; the only thing cached to disk
 net/grab.ts           GrabFood client: search, menu
 net/gofood.ts         GoFood client: session bootstrap, search, menu
+net/warpClient.ts     shared Cloudflare WARP SOCKS egress client
 util/report.ts        agent-readable table formatting
 restaurants.ts        runner: list open restaurants from both apps
 menu.ts               runner: one restaurant's menu (provider inferred from id)

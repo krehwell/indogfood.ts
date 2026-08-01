@@ -4,6 +4,10 @@ Find open restaurants near the user's address and read their menus, so you can
 pick items (e.g. that fit their diet plan). Read-only: you never place an order;
 the user orders themselves. Run everything from this directory.
 
+All external network traffic exits through Cloudflare WARP at
+`socks5://127.0.0.1:40000`: Deno HTTP calls share `net/warpClient.ts`, while the
+headless Chromium token flow uses the same SOCKS proxy via its launch flags.
+
 GrabFood and GoFood are both queried and merged into one list sorted by
 distance, so the same restaurant may appear twice, once per app, with slightly
 different prices, distance and ETA. Say which app an item came from when you
@@ -27,6 +31,7 @@ deno task resto --limit=200      # page deeper on Grab (default 64)
 deno task resto --source=gofood  # one provider only (grab | gofood)
 deno task menu 6-C6WXGYDDC24GC2  # full menu; provider inferred from the id
 deno task menu <id> --all        # include out-of-stock items
+deno task test                   # run deterministic unit tests
 ```
 
 Add `--json` to either for a parsed object instead of the text report. The
@@ -58,8 +63,15 @@ next: deno task menu <id>
 `6-XXXXXXXX`, GoFood ids are slugs ending in a uuid. Pass either straight to
 `deno task menu`; it routes to the right provider.
 
-Menu rows are `category|item|price_rp|available|note`. `price_rp` is whole
+- Menu rows are `category|item|price_rp|available|note`. `price_rp` is whole
 rupiah as an integer (`7500`), never `7.5`.
+- Treat menu photos as weak evidence. They may be stock, heavily styled, reused,
+  or materially unlike the delivered portion. Base ingredient and calorie
+  judgments primarily on the written item name, description, selectable options,
+  price/size context, and the user's report of what actually arrived. A photo may
+  support a judgment but must never override those stronger signals. If a photo
+  looks generic or provenance is unclear, label it as marketing/uncertain rather
+  than inferring ingredients or portion size from it.
 
 ## Notes
 

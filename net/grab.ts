@@ -1,5 +1,6 @@
 import { grabToken } from "./token.ts";
 import type { Location, Menu, MenuItem, Merchant } from "./types.ts";
+import { warpClient } from "./warpClient.ts";
 
 const PORTAL = "https://portal.grab.com/foodweb/guest/v2";
 const UA =
@@ -17,6 +18,7 @@ async function call(
   for (const attempt of [0, 1]) {
     const res = await fetch(`${PORTAL}${path}`, {
       ...init,
+      client: warpClient,
       headers: {
         "User-Agent": UA,
         "Accept": "application/json",

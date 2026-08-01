@@ -94,6 +94,7 @@ export async function mintToken(timeoutMs = 60_000): Promise<string> {
       "--no-first-run",
       "--no-default-browser-check",
       "--disable-gpu",
+      "--proxy-server=socks5://127.0.0.1:40000",
       // Required when the VPS runs this as root, harmless otherwise.
       "--no-sandbox",
       LOGIN_URL,
