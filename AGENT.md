@@ -85,6 +85,11 @@ rupiah as an integer (`7500`), never `7.5`.
   `Bubur Ayam`. Run `--cuisines` first and pick from it rather than guessing a
   tag; a tag that does not exist returns nothing and that is not the same as
   nothing being open.
+- Both apps are queried in Indonesian, but they word tags differently: chicken
+  is `Hidangan Ayam` on Grab and `Ayam & bebek` on GoFood, healthy is `Sehat`
+  versus `Makanan sehat`. Prefer a short root (`ayam`, `nasi`, `sehat`) so one
+  search covers both apps; a full label usually matches only the app it came
+  from.
 - `--cuisine` filters what was already fetched, it does not ask the app for that
   category. So a narrow tag on the default `--limit=64` can look empty when the
   restaurants exist further down; raise `--limit` before concluding there are

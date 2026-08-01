@@ -13,6 +13,14 @@
 import type { Location, Menu, MenuItem, Merchant } from "./types.ts";
 
 const HOST = "https://gofood.co.id";
+/**
+ * Locale segment on every page and data route. Indonesian on purpose: it is the
+ * language of the tags, and Grab already asks for `id`. Under `/en` GoFood
+ * returns "Chicken & duck" and "Healthy" where Grab says "Hidangan Ayam" and
+ * "Sehat", which splits `--cuisine` down the middle so one search can only ever
+ * match one provider. Menu item names are merchant-written either way.
+ */
+const LANG = "id";
 const UA =
   "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:133.0) Gecko/20100101 Firefox/133.0";
 
@@ -35,7 +43,9 @@ let cached: Session | null = null;
 async function session(loc: Location): Promise<Session> {
   if (cached) return cached;
 
-  const boot = await fetch(`${HOST}/en`, { headers: { "User-Agent": UA } });
+  const boot = await fetch(`${HOST}/${LANG}`, {
+    headers: { "User-Agent": UA },
+  });
   const html = await boot.text();
   if (!boot.ok) {
     throw new Error(
@@ -89,7 +99,7 @@ async function session(loc: Location): Promise<Session> {
 async function data(s: Session, path: string): Promise<Record<string, never>> {
   await sleep(GAP_MS);
   const r = await fetch(
-    `${HOST}/_next/data/${s.buildId}/en/${path}`,
+    `${HOST}/_next/data/${s.buildId}/${LANG}/${path}`,
     {
       headers: {
         "User-Agent": UA,

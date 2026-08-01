@@ -37,6 +37,11 @@ rather than asking the app for that category, so raise `--limit` before deciding
 a tag has nothing. `--cuisines` lists the real vocabulary; pick from it instead
 of guessing.
 
+Both apps are queried in Indonesian so one search can match both, but they word
+things differently: chicken is `Hidangan Ayam` on Grab and `Ayam & bebek` on
+GoFood, healthy is `Sehat` versus `Makanan sehat`. Short roots (`ayam`, `nasi`,
+`sehat`) therefore match across apps where a full label only hits one.
+
 ## Setup
 
 Needs Deno and a Chromium (or Chrome) binary. On the VPS:
