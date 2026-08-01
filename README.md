@@ -1,11 +1,17 @@
 # indogfood.ts
 
-Imagine asking your AI agent to find food around you so it fits your diet menu.
-This tool was built exactly for that. _Note: Indonesia only._
+Food-finding tool calls for your AI agent. It lists open restaurants near you
+and their menus, pulled from **GrabFood** and **GoFood** together and sorted by
+distance, so the agent can pick what actually fits your diet and you just place
+the order.
 
-It lists open restaurants near you and their menus, pulled from **GrabFood** and
-**GoFood** together and sorted by distance. Read-only: it never places an order,
-you (or your agent) just use it to decide what to order.
+> [!IMPORTANT]
+> Indonesia only. And run it from a home connection: GoFood blocks
+> datacenter/VPN IPs, from one of those you still get Grab results plus a
+> warning line.
+
+> [!NOTE]
+> Read-only. It never places an order, it only helps decide one.
 
 ## Usage
 
@@ -54,7 +60,5 @@ address, so a wrong one gives wrong answers.
 
 ## Good to know
 
-- Run it from a home connection in Indonesia. GoFood blocks datacenter/VPN IPs;
-  from one of those you still get Grab results plus a warning line.
 - GoFood caps search at 12 results, so its coverage is shallower than Grab's.
 - Be patient: requests are deliberately paced so the apps don't block you.
