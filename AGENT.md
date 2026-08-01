@@ -20,6 +20,8 @@ recommend it, because that decides where the user orders.
 ```sh
 deno task resto                  # open restaurants near the user's address
 deno task resto sate             # filter by keyword
+deno task resto --cuisines       # list the food categories actually nearby
+deno task resto --cuisine=sehat  # filter by category (substring match)
 deno task resto --all            # include closed ones
 deno task resto --limit=200      # page deeper on Grab (default 64)
 deno task resto --source=gofood  # one provider only (grab | gofood)
@@ -76,3 +78,17 @@ rupiah as an integer (`7500`), never `7.5`.
 - GoFood caps each search at 12 results and has no paging, so with no keyword it
   sweeps a set of common cuisines. Its coverage is shallower than Grab's; a
   keyword search is the reliable way to find something specific there.
+- `--cuisine` filters the `cuisine` column, which is the apps' own free-text
+  tags, so it covers cuisine (`Masakan Jepang`), dish (`Ayam Geprek`) and type
+  (`Sehat`, `Sarapan`, `Camilan`) in one namespace. Match is a case-insensitive
+  substring, so `--cuisine=ayam` catches `Ayam Goreng`, `Hidangan Ayam` and
+  `Bubur Ayam`. Run `--cuisines` first and pick from it rather than guessing a
+  tag; a tag that does not exist returns nothing and that is not the same as
+  nothing being open.
+- `--cuisine` filters what was already fetched, it does not ask the app for that
+  category. So a narrow tag on the default `--limit=64` can look empty when the
+  restaurants exist further down; raise `--limit` before concluding there are
+  none.
+- Grab rate-limits with a `429` if you fetch large pages repeatedly. It shows as
+  a `warning: grab: ... -> 429` line and an empty list. Wait a minute and retry
+  rather than reporting that nothing is nearby.

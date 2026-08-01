@@ -12,6 +12,11 @@ const limit = Number(
 const only = Deno.args.find((a) => a.startsWith("--source="))?.split("=")[1] as
   | Source
   | undefined;
+// Substring, not equality: the tags are the providers' own free text ("Ayam
+// Goreng", "Hidangan Ayam", "Ayam Geprek"), so --cuisine=ayam should catch all
+// three rather than making you guess the exact label. --cuisines lists them.
+const cuisine = Deno.args.find((a) => a.startsWith("--cuisine="))
+  ?.split("=")[1]?.toLowerCase();
 
 const loc = location();
 
@@ -36,15 +41,49 @@ const [g, gf] = await Promise.all([
   ),
 ]);
 
+const warnings = () => {
+  for (const e of errors) console.log(`\nwarning: ${e}`);
+};
+
 const scanned = [...g, ...gf].sort((a, b) => a.distanceKm - b.distanceKm);
-const list = all ? scanned : scanned.filter((m) => m.open);
+const visible = all ? scanned : scanned.filter((m) => m.open);
+const list = cuisine
+  ? visible.filter((m) =>
+    m.cuisine.some((c) => c.toLowerCase().includes(cuisine))
+  )
+  : visible;
+
+// Which categories are actually around you, so --cuisine is a pick and not a
+// guess. Counted over what you would otherwise see, so it respects --all.
+if (flags.has("--cuisines")) {
+  const count = new Map<string, number>();
+  for (const m of visible) {
+    for (const c of m.cuisine) count.set(c, (count.get(c) ?? 0) + 1);
+  }
+  const rows = [...count].sort((a, b) =>
+    b[1] - a[1] || a[0].localeCompare(b[0])
+  );
+  console.log(table(["n", "cuisine"], rows.map(([c, n]) => [n, c])));
+  console.log(
+    `\n${rows.length} categories across ${visible.length} restaurants` +
+      `\nnext: deno task resto --cuisine=<text>`,
+  );
+  // Without this an empty list reads as "no categories here" when the real
+  // story is that a provider errored out.
+  warnings();
+  Deno.exit(0);
+}
 
 if (flags.has("--json")) {
   console.log(JSON.stringify(
     {
       now: new Date().toISOString(),
       location: loc,
-      query: { keyword: keyword || null, showing: all ? "all" : "open" },
+      query: {
+        keyword: keyword || null,
+        cuisine: cuisine ?? null,
+        showing: all ? "all" : "open",
+      },
       errors,
       scanned: scanned.length,
       matched: list.length,
@@ -59,7 +98,9 @@ if (flags.has("--json")) {
 console.log(header("indogfood restaurants", {
   address: `${loc.address} (${loc.latitude},${loc.longitude})`,
   now: nowLine().slice(5),
-  query: `keyword=${keyword ? JSON.stringify(keyword) : "-"} showing=${
+  query: `keyword=${keyword ? JSON.stringify(keyword) : "-"}${
+    cuisine ? ` cuisine=${JSON.stringify(cuisine)}` : ""
+  } showing=${
     all ? "all" : "open-only"
   } scanned=${scanned.length} matched=${list.length}`,
   sources: `grab=${g.length} gofood=${gf.length}`,
@@ -93,10 +134,15 @@ console.log(table(
   ]),
 ));
 
-for (const e of errors) console.log(`\nwarning: ${e}`);
+warnings();
 if (!list.length) {
   console.log(
-    all
+    // A cuisine that matched nothing is a bad guess at the tag, not an empty
+    // neighbourhood; saying "nothing nearby" there would be a lie.
+    cuisine && visible.length
+      ? `(no ${JSON.stringify(cuisine)} among ${visible.length} nearby; ` +
+        `run --cuisines to see what is)`
+      : all
       ? "(nothing nearby; check FOOD_LAT/FOOD_LNG)"
       : "(nothing open right now; re-run with --all to see closed ones)",
   );

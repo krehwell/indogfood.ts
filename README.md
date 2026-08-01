@@ -15,6 +15,8 @@ list sorted by distance from your address.
 ```sh
 deno task resto                  # open restaurants near you, both apps
 deno task resto sate             # keyword search
+deno task resto --cuisines       # what food categories are actually nearby
+deno task resto --cuisine=sehat  # filter by category (substring: ayam, kopi, sehat)
 deno task resto --all            # include closed ones
 deno task resto --source=gofood  # one provider only (grab | gofood)
 deno task resto --limit=200      # page deeper on Grab (default 64)
@@ -26,6 +28,14 @@ deno task menu <id> --all        # include out-of-stock items
 
 Restaurant IDs come from `deno task resto`. Output format and agent-facing usage
 live in [AGENT.md](AGENT.md), that's the file to feed the agent.
+
+Categories are the apps' own free-text tags, so one namespace covers cuisine
+(`Masakan Jepang`), dish (`Ayam Geprek`) and type (`Sehat`, `Sarapan`,
+`Camilan`). Matching is a case-insensitive substring, so `--cuisine=ayam` also
+catches `Hidangan Ayam` and `Bubur Ayam`. It filters what was already fetched
+rather than asking the app for that category, so raise `--limit` before deciding
+a tag has nothing. `--cuisines` lists the real vocabulary; pick from it instead
+of guessing.
 
 ## Setup
 
