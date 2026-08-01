@@ -38,22 +38,16 @@ cp .env.example .env             # then set your address, see below
 
 Nothing else. No login, no API key, no manual token step ever.
 
-**GoFood is IP-blocked from datacenters.** Its WAF returns a block page to the
-Singapore VPS for every request, including from a real headless Chromium, so
-this is the IP and not the client. Cloudflare WARP does not fix it either: its
-exit is still Singapore and flagged as a proxy, so it is blocked the same way.
-Grab is unaffected.
+**GoFood only answers residential Indonesian IPs.** From the Singapore VPS its
+WAF returns a block page to every request, including from a real headless
+Chromium, so this is the IP and not the client. Also tested and also blocked:
+Cloudflare WARP (Singapore, flagged as a proxy) and ProtonVPN's Indonesia exit,
+which is a virtual location physically in Singapore flagged as both proxy and
+hosting. A home connection is the only thing that works, so run it from home to
+get both apps.
 
 On the VPS you therefore get Grab results plus a `warning: gofood: ...` line,
-which is why one provider failing never hides the other. To get both, GoFood
-needs an Indonesian residential egress:
-
-```sh
-FOOD_PROXY=socks5://127.0.0.1:40000   # only GoFood is routed through it
-```
-
-It is opt-in on purpose. Defaulting to a tunnel that is also blocked would just
-hide the cause.
+which is why one provider failing never hides the other. Grab is unaffected.
 
 Results are scoped to a delivery address, so a wrong address gives silently
 wrong answers. There is no safe default, so these are required in `.env`:

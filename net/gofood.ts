@@ -16,22 +16,6 @@ const HOST = "https://gofood.co.id";
 const UA =
   "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:133.0) Gecko/20100101 Firefox/133.0";
 
-/**
- * GoFood's WAF blocks non-Indonesian and datacenter IPs outright, so a VPS
- * needs an Indonesian egress. Opt in explicitly rather than defaulting to a
- * tunnel: Cloudflare WARP exits Singapore and is blocked just the same, and
- * silently routing through a proxy that also fails only hides the cause.
- *
- *   FOOD_PROXY=socks5://127.0.0.1:40000
- */
-const proxyUrl = Deno.env.get("FOOD_PROXY");
-const client = proxyUrl
-  ? Deno.createHttpClient({ proxy: { url: proxyUrl } })
-  : undefined;
-
-const via = (init: RequestInit = {}): RequestInit =>
-  client ? { ...init, client } as RequestInit : init;
-
 /** Keep well under whatever tripped the WAF; this is not a crawler. */
 const GAP_MS = 350;
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
@@ -51,17 +35,14 @@ let cached: Session | null = null;
 async function session(loc: Location): Promise<Session> {
   if (cached) return cached;
 
-  const boot = await fetch(
-    `${HOST}/en`,
-    via({ headers: { "User-Agent": UA } }),
-  );
+  const boot = await fetch(`${HOST}/en`, { headers: { "User-Agent": UA } });
   const html = await boot.text();
   if (!boot.ok) {
     throw new Error(
       `GoFood refused the session bootstrap (${boot.status}). ` +
-        `Its WAF blocks datacenter and non-Indonesian IPs outright` +
-        (proxyUrl ? ` (FOOD_PROXY=${proxyUrl} did not help)` : "") +
-        `; it also blocks temporarily after too many requests.`,
+        `Its WAF only answers residential Indonesian IPs, so this works from ` +
+        `home but not from a datacenter; it also blocks temporarily after too ` +
+        `many requests.`,
     );
   }
   const buildId = html.match(/"buildId":"([^"]+)"/)?.[1];
@@ -75,7 +56,7 @@ async function session(loc: Location): Promise<Session> {
   // Grab uses instead of defaulting to the city centroid.
   const geo = await fetch(
     `${HOST}/api/poi/reverse-geocode?latlong=${loc.latitude},${loc.longitude}`,
-    via({ headers: { "User-Agent": UA, Cookie: jar.join("; ") } }),
+    { headers: { "User-Agent": UA, Cookie: jar.join("; ") } },
   );
   if (!geo.ok) throw new Error(`GoFood reverse-geocode failed (${geo.status})`);
   const g = await geo.json();
@@ -109,13 +90,13 @@ async function data(s: Session, path: string): Promise<Record<string, never>> {
   await sleep(GAP_MS);
   const r = await fetch(
     `${HOST}/_next/data/${s.buildId}/en/${path}`,
-    via({
+    {
       headers: {
         "User-Agent": UA,
         Cookie: s.cookie,
         Accept: "application/json",
       },
-    }),
+    },
   );
   if (!r.ok) {
     throw new Error(
