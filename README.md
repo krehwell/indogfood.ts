@@ -44,16 +44,35 @@ this is the IP and not the client. Cloudflare WARP does not fix it either: its
 exit is still Singapore and flagged as a proxy, so it is blocked the same way.
 Grab is unaffected.
 
+The rule only fires on requests that reach the origin. Anything the EdgeOne
+cache can answer (`robots.txt`, `sitemap.xml`, `/_next/static/*`) returns 200
+even from the VPS, so a `403` with `server: stgw` and `eo-cache-status: MISS`
+is the signature of this block rather than a broken request.
+
 On the VPS you therefore get Grab results plus a `warning: gofood: ...` line,
 which is why one provider failing never hides the other. To get both, GoFood
 needs an Indonesian residential egress:
 
 ```sh
-FOOD_PROXY=socks5://127.0.0.1:40000   # only GoFood is routed through it
+FOOD_PROXY=socks5://127.0.0.1:1080   # only GoFood is routed through it
 ```
 
 It is opt-in on purpose. Defaulting to a tunnel that is also blocked would just
 hide the cause.
+
+The cheapest egress that works is the home connection itself. From a machine on
+Indonesian residential/mobile internet, one command puts a SOCKS5 proxy on the
+VPS that exits through it, no port forwarding and no public IP needed, so CGNAT
+on a mobile line is fine:
+
+```sh
+ssh -N -R 1080 vps                   # run from home, keep it up
+```
+
+`~/Library/LaunchAgents/com.krehwell.gofood-tunnel.plist` keeps that alive on
+the Mac. The catch is that the laptop must be awake for a scheduled VPS run to
+see GoFood; `sudo pmset -c disablesleep 1` fixes that, or move the tunnel to a
+device that is always on.
 
 Results are scoped to a delivery address, so a wrong address gives silently
 wrong answers. There is no safe default, so these are required in `.env`:
