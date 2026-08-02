@@ -196,9 +196,11 @@ if (!list.length) {
   console.log(
     // A cuisine that matched nothing is a bad guess at the tag, not an empty
     // neighbourhood; saying "nothing nearby" there would be a lie.
-    promoMin && visible.length
-      ? `(nothing at ${promoMin}% or more among ${visible.length} nearby; ` +
-        `try a lower --promo, or --promo alone for any offer)`
+    promoMin !== undefined && visible.length
+      ? promoMin
+        ? `(nothing at ${promoMin}% or more among ${visible.length} nearby; ` +
+          `try a lower --promo, or --promo alone for any offer)`
+        : `(no live offers among ${visible.length} nearby right now)`
       : cuisine && visible.length
       ? `(no ${JSON.stringify(cuisine)} among ${visible.length} nearby; ` +
         `run --cuisines to see what is)`

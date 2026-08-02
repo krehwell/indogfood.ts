@@ -30,7 +30,10 @@ async function call(
         ...(init.body ? { "Content-Type": "application/json" } : {}),
       },
     });
-    if (res.status === 401 && attempt === 0) continue;
+    if (res.status === 401 && attempt === 0) {
+      await res.body?.cancel();
+      continue;
+    }
     if (!res.ok) {
       throw new Error(
         `Grab ${path} -> ${res.status} ${(await res.text()).slice(0, 200)}`,
@@ -62,7 +65,8 @@ function toMerchant(m: any): Merchant {
       ),
     ],
     distanceKm: b.distanceInKm ?? 0,
-    rating: b.rating ?? null,
+    // 0 means unrated, same as GoFood; report unknown, not a bad score.
+    rating: b.rating || null,
     votes: b.vote_count ?? 0,
     etaMinutes: m.estimatedDeliveryTime ?? null,
   };
