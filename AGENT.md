@@ -22,6 +22,8 @@ deno task resto                  # open restaurants near the user's address
 deno task resto sate             # filter by keyword
 deno task resto --cuisines       # list the food categories actually nearby
 deno task resto --cuisine=sehat  # filter by category (substring match)
+deno task resto --promo          # only ones with a live offer
+deno task resto --promo=50       # only offers of 50% or more
 deno task resto --all            # include closed ones
 deno task resto --limit=200      # page deeper on Grab (default 64)
 deno task resto --source=gofood  # one provider only (grab | gofood)
@@ -47,9 +49,9 @@ now: 2026-08-02 03:55:12 Asia/Jakarta (2026-08-01T20:55:12.350Z)
 query: keyword="sate" showing=open-only scanned=128 matched=18
 sources: grab=64 gofood=64
 
-src|id|open|km|eta_min|rating|votes|hours|cuisine|name
-grab|6-C6WXGYDDC24GC2|yes|4.0|26|4.7|878|00:00-23:59|Beverage|Sate Apaleh - Batoh
-gofood|sate-kacang-nusantara-de9561db-...|yes|0.4|15|4.2|-|18:00-23:59|Satay|Sate Kacang Nusantara
+src|id|open|km|eta_min|rating|votes|hours|cuisine|promo|name
+grab|6-C6WXGYDDC24GC2|yes|4.0|26|4.7|878|00:00-23:59|Minuman|Diskon 50% / Diskon Rp15.000|Sate Apaleh - Batoh
+gofood|sate-kacang-nusantara-de9561db-...|yes|0.4|15|4.2|-|18:00-23:59|Sate|Diskon 15%, maks. 24rb (Min. pembelian 50rb)|Sate Kacang Nusantara
 
 next: deno task menu <id>
 ```
@@ -97,3 +99,17 @@ rupiah as an integer (`7500`), never `7.5`.
 - Grab rate-limits with a `429` if you fetch large pages repeatedly. It shows as
   a `warning: grab: ... -> 429` line and an empty list. Wait a minute and retry
   rather than reporting that nothing is nearby.
+- `promo` is each app's own offer text, verbatim. Quote it rather than
+  paraphrasing, and never turn it into a promise: a GoFood offer usually carries
+  a condition in brackets (`Min. pembelian 108rb`, `Kelar jam 11:00`) that
+  decides whether it applies at all. Grab lists several offers separated by `/`
+  and they are usually alternatives, not stackable.
+- Nearly every merchant has some offer, so bare `--promo` filters almost
+  nothing; it is `--promo=50` and similar that narrows. Percent is the only unit
+  both apps state, so the threshold reads percentages only. Offers priced in
+  rupiah (`Diskon Rp30.000`) have no percent and survive bare `--promo` but
+  never a numeric threshold, so a merchant can be excluded by `--promo=50` while
+  still having the larger discount in absolute terms.
+- Discounts here are merchant offers, not the final price. You cannot compute
+  what the user pays from this column, so do not try; report the offer and let
+  the app do the arithmetic at checkout.

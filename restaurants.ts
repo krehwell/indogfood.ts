@@ -17,6 +17,22 @@ const only = Deno.args.find((a) => a.startsWith("--source="))?.split("=")[1] as
 // three rather than making you guess the exact label. --cuisines lists them.
 const cuisine = Deno.args.find((a) => a.startsWith("--cuisine="))
   ?.split("=")[1]?.toLowerCase();
+// `--promo` alone means any live offer, `--promo=50` at least 50% off. Percent
+// is the only unit both apps state, so it is the only one worth a threshold;
+// "Diskon Rp30.000" has no percent and so only survives the bare flag.
+const promoArg = Deno.args.find((a) =>
+  a === "--promo" || a.startsWith("--promo=")
+);
+const promoMin = promoArg === undefined
+  ? undefined
+  : Number(promoArg.split("=")[1] ?? 0) || 0;
+const bestPct = (m: Merchant) =>
+  Math.max(
+    0,
+    ...m.promos.flatMap((p) =>
+      [...p.matchAll(/(\d+)\s*%/g)].map((x) => Number(x[1]))
+    ),
+  );
 
 const loc = location();
 
@@ -47,11 +63,11 @@ const warnings = () => {
 
 const scanned = [...g, ...gf].sort((a, b) => a.distanceKm - b.distanceKm);
 const visible = all ? scanned : scanned.filter((m) => m.open);
-const list = cuisine
-  ? visible.filter((m) =>
-    m.cuisine.some((c) => c.toLowerCase().includes(cuisine))
-  )
-  : visible;
+const list = visible.filter((m) =>
+  (!cuisine || m.cuisine.some((c) => c.toLowerCase().includes(cuisine))) &&
+  (promoMin === undefined ||
+    (m.promos.length > 0 && bestPct(m) >= promoMin))
+);
 
 // Which categories are actually around you, so --cuisine is a pick and not a
 // guess. Counted over what you would otherwise see, so it respects --all.
@@ -100,6 +116,10 @@ console.log(header("indogfood restaurants", {
   now: nowLine().slice(5),
   query: `keyword=${keyword ? JSON.stringify(keyword) : "-"}${
     cuisine ? ` cuisine=${JSON.stringify(cuisine)}` : ""
+  }${
+    promoMin === undefined
+      ? ""
+      : ` promo=${promoMin ? `>=${promoMin}%` : "any"}`
   } showing=${
     all ? "all" : "open-only"
   } scanned=${scanned.length} matched=${list.length}`,
@@ -118,6 +138,7 @@ console.log(table(
     "votes",
     "hours",
     "cuisine",
+    "promo",
     "name",
   ],
   list.map((m) => [
@@ -130,6 +151,7 @@ console.log(table(
     m.votes || null,
     m.hours,
     m.cuisine.join(", "),
+    m.promos.join(" / "),
     m.name,
   ]),
 ));
@@ -139,7 +161,10 @@ if (!list.length) {
   console.log(
     // A cuisine that matched nothing is a bad guess at the tag, not an empty
     // neighbourhood; saying "nothing nearby" there would be a lie.
-    cuisine && visible.length
+    promoMin && visible.length
+      ? `(nothing at ${promoMin}% or more among ${visible.length} nearby; ` +
+        `try a lower --promo, or --promo alone for any offer)`
+      : cuisine && visible.length
       ? `(no ${JSON.stringify(cuisine)} among ${visible.length} nearby; ` +
         `run --cuisines to see what is)`
       : all

@@ -158,6 +158,14 @@ function toMerchant(o: any): Merchant {
       // deno-lint-ignore no-explicit-any
       .map((t: any) => t.displayName)
       .filter(Boolean),
+    // The description carries the catch ("Min. pembelian 108rb"), so keep it
+    // attached; a bare "Diskon 36%" reads as unconditional when it is not.
+    // deno-lint-ignore no-explicit-any
+    promos: (o.offerPreviews ?? []).map((p: any) => {
+      const title = String(p.title ?? "").trim();
+      const note = String(p.description ?? "").trim();
+      return note ? `${title} (${note})` : title;
+    }).filter(Boolean),
     distanceKm: o.delivery?.distanceKm ?? 0,
     // GoFood sends 0 for "unrated"; report that as unknown, not as a bad score.
     rating: o.ratings?.average || null,

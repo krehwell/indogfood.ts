@@ -49,6 +49,16 @@ function toMerchant(m: any): Merchant {
     open: b.openHours?.open === true,
     hours: b.openHours?.displayedHours ?? "?",
     cuisine: b.cuisine ?? [],
+    // Not `merchantBrief.promo.hasPromo`: that is true for nearly every
+    // merchant, so it filters nothing. These carry the actual amount.
+    promos: [
+      ...new Set(
+        // deno-lint-ignore no-explicit-any
+        ((m.sideLabels?.data ?? []) as any[])
+          .map((d) => String(d.displayedText ?? "").trim())
+          .filter(Boolean),
+      ),
+    ],
     distanceKm: b.distanceInKm ?? 0,
     rating: b.rating ?? null,
     votes: b.vote_count ?? 0,

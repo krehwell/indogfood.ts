@@ -20,6 +20,8 @@ deno task resto                  # open restaurants near you, both apps
 deno task resto sate             # keyword search
 deno task resto --cuisines       # what food categories are actually nearby
 deno task resto --cuisine=sehat  # filter by category (substring: ayam, kopi, sehat)
+deno task resto --promo          # only ones running an offer
+deno task resto --promo=50       # only offers of 50% or more
 deno task resto --all            # include closed ones
 deno task resto --source=gofood  # one provider only (grab | gofood)
 deno task resto --limit=200      # page deeper on Grab (default 64)
@@ -35,6 +37,13 @@ Restaurant IDs come from `deno task resto`. Giving this to an agent? Feed it
 `--cuisine` matches the apps' own tags by substring, so short roots work best:
 `ayam` catches both Grab's `Hidangan Ayam` and GoFood's `Ayam & bebek`. Run
 `--cuisines` first to see the real vocabulary instead of guessing.
+
+`--promo` reads each app's real offer text, not Grab's `hasPromo` flag, which is
+true for 89 of 96 merchants nearby and so filters nothing. Almost everyone is
+running something, so the useful form is the threshold `--promo=50`. Percent is
+the only unit both apps state, so rupiah offers (`Diskon Rp30.000`) pass bare
+`--promo` but never a numeric one. GoFood usually attaches the catch in brackets
+(`Min. pembelian 108rb`), which is kept.
 
 ## Setup
 

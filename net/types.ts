@@ -18,6 +18,14 @@ export type Merchant = {
   open: boolean;
   hours: string;
   cuisine: string[];
+  /**
+   * Live offers as each app words them: "Diskon 50%", "Flash sale 35%",
+   * "Diskon 31%, maks. 36rb (Min. pembelian 108rb)". Kept as display text
+   * because the two apps express discounts in different units (percent, flat
+   * rupiah, capped-with-minimum) and flattening them to one number would
+   * quietly claim things the data does not say.
+   */
+  promos: string[];
   distanceKm: number;
   rating: number | null;
   votes: number;
