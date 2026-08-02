@@ -1,6 +1,6 @@
 import * as grab from "./net/grab.ts";
 import * as gofood from "./net/gofood.ts";
-import { location } from "./net/types.ts";
+import { location, sourceOf } from "./net/types.ts";
 import { header, nowLine, table } from "./util/report.ts";
 import { checkFlags, die } from "./util/flags.ts";
 
@@ -18,8 +18,7 @@ if (!id) {
 }
 
 const loc = location();
-// Grab merchant ids are "6-XXXX"; GoFood ids are slugs ending in a uuid.
-const isGrab = /^\d+-[A-Z0-9]+$/.test(id);
+const isGrab = sourceOf(id) === "grab";
 // A bad id otherwise surfaces as an unhandled rejection and a stack trace,
 // which buries the one thing worth saying: the id did not resolve.
 const m = await (isGrab ? grab.menu(loc, id) : gofood.menu(loc, id))

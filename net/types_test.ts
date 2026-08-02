@@ -1,5 +1,29 @@
 import { assertEquals } from "@std/assert";
-import { bestPromoPct, type Merchant } from "./types.ts";
+import { bestPromoPct, type Merchant, sourceOf } from "./types.ts";
+
+// Every id below was observed in a real run. Grab's three formats are the
+// point: routing on "6-XXXX" sent the other two to GoFood, so `deno task menu`
+// failed on roughly one merchant in six, chain outlets especially.
+Deno.test("Grab ids route to Grab in all three formats", () => {
+  assertEquals(sourceOf("6-C7VKLXMASBE3JX"), "grab");
+  assertEquals(sourceOf("IDGFSTI00003crn"), "grab");
+  assertEquals(sourceOf("AWfPkO00U0GQ11lNiASe"), "grab");
+});
+
+Deno.test("a GoFood slug routes to GoFood on its uuid suffix", () => {
+  assertEquals(
+    sourceOf(
+      "nasi-gurih-buk-ita-mak-pidie-5cf528eb-1cdc-486b-b7e9-5b7d87ca7dcc",
+    ),
+    "gofood",
+  );
+});
+
+// A slug that merely contains hyphens is not a uuid; only the tail counts.
+Deno.test("hyphens alone do not make it GoFood", () => {
+  assertEquals(sourceOf("6-C6WXGYDDC24GC2"), "grab");
+  assertEquals(sourceOf("some-hyphenated-name"), "grab");
+});
 
 const m = (...promos: string[]): Merchant => ({
   source: "grab",

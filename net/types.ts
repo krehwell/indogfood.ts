@@ -51,6 +51,20 @@ export type Menu = {
 };
 
 /**
+ * Which app an id came from, so `menu` can route without being told.
+ *
+ * Decided on GoFood's shape because it is the stable one: every GoFood id ends
+ * in a uuid. Grab issues at least three formats ("6-C7VKLXMASBE3JX",
+ * "IDGFSTI00003crn", "AWfPkO00U0GQ11lNiASe"), so matching Grab's first format
+ * instead sent chain outlets like KFC to GoFood, where they cannot exist.
+ */
+export function sourceOf(id: string): Source {
+  return /[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i.test(id)
+    ? "gofood"
+    : "grab";
+}
+
+/**
  * Highest percentage stated across a merchant's offers.
  *
  * 0 means no offer states a percent, which is not the same as no discount:
