@@ -16,6 +16,11 @@ export const warpEnabled = Deno.build.os === "linux";
  * Pass as `client` on any fetch. Off the VPS this is a plain client with no
  * proxy, so call sites need no branch of their own.
  *
+ * Creating a proxied client needs net access to the proxy host, so the test
+ * task carries `--allow-net=127.0.0.1:40000`. Dropping it passes on the Mac,
+ * where no proxy is configured and the permission is never asked for, and
+ * fails on the VPS at import time.
+ *
  * ponytail: assumes WARP is up whenever the OS is Linux. If it is not, every
  * request fails at the socket with nothing pointing at the proxy as the cause;
  * probe the port instead if that ever bites.
