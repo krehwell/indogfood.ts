@@ -7,6 +7,8 @@
  * (no automation library needed) and take the token it ends up with.
  */
 
+import { warpEnabled } from "./warpClient.ts";
+
 const LOGIN_URL = "https://food.grab.com/id/id/restaurants";
 
 /** sessionStorage key the web app keeps its guest token under. */
@@ -94,6 +96,10 @@ export async function mintToken(timeoutMs = 60_000): Promise<string> {
       "--no-first-run",
       "--no-default-browser-check",
       "--disable-gpu",
+      // Only where WARP is actually listening. Passing this unconditionally
+      // points the Mac's Chromium at a dead port, so it reaches nothing and
+      // the mint times out with no clue why.
+      ...(warpEnabled ? ["--proxy-server=socks5://127.0.0.1:40000"] : []),
       // Required when the VPS runs this as root, harmless otherwise.
       "--no-sandbox",
       LOGIN_URL,

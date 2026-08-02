@@ -11,6 +11,7 @@
  */
 
 import type { Location, Menu, MenuItem, Merchant } from "./types.ts";
+import { warpClient } from "./warpClient.ts";
 
 const HOST = "https://gofood.co.id";
 /**
@@ -44,6 +45,7 @@ async function session(loc: Location): Promise<Session> {
   if (cached) return cached;
 
   const boot = await fetch(`${HOST}/${LANG}`, {
+    client: warpClient,
     headers: { "User-Agent": UA },
   });
   const html = await boot.text();
@@ -66,7 +68,10 @@ async function session(loc: Location): Promise<Session> {
   // Grab uses instead of defaulting to the city centroid.
   const geo = await fetch(
     `${HOST}/api/poi/reverse-geocode?latlong=${loc.latitude},${loc.longitude}`,
-    { headers: { "User-Agent": UA, Cookie: jar.join("; ") } },
+    {
+      client: warpClient,
+      headers: { "User-Agent": UA, Cookie: jar.join("; ") },
+    },
   );
   if (!geo.ok) throw new Error(`GoFood reverse-geocode failed (${geo.status})`);
   const g = await geo.json();
@@ -101,6 +106,7 @@ async function data(s: Session, path: string): Promise<Record<string, never>> {
   const r = await fetch(
     `${HOST}/_next/data/${s.buildId}/${LANG}/${path}`,
     {
+      client: warpClient,
       headers: {
         "User-Agent": UA,
         Cookie: s.cookie,
@@ -123,9 +129,14 @@ async function data(s: Session, path: string): Promise<Record<string, never>> {
  * `now` is injectable so the day mapping can be tested; an off-by-one here
  * reports yesterday's hours and fails silently.
  */
-// deno-lint-ignore no-explicit-any
+type OpenPeriod = {
+  day: number;
+  startTime?: Record<string, number>;
+  endTime?: Record<string, number>;
+};
+
 export function todayHours(
-  periods: any[],
+  periods: OpenPeriod[],
   timeZone: string,
   now = new Date(),
 ): string {
