@@ -4,5 +4,10 @@
     "menu": "deno run --allow-net --allow-env --allow-read --allow-write --allow-run --env-file menu.ts",
     "test": "deno test --allow-read --allow-env --allow-write"
   },
-  "compilerOptions": { "strict": true }
+  "compilerOptions": {
+    "strict": true
+  },
+  "imports": {
+    "@std/assert": "jsr:@std/assert@1"
+  }
 }

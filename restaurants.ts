@@ -1,38 +1,56 @@
 import * as grab from "./net/grab.ts";
 import * as gofood from "./net/gofood.ts";
-import { location, type Merchant, type Source } from "./net/types.ts";
+import {
+  bestPromoPct,
+  location,
+  type Merchant,
+  type Source,
+} from "./net/types.ts";
 import { header, nowLine, table } from "./util/report.ts";
+import { checkFlags, die, intFlag } from "./util/flags.ts";
+
+checkFlags(Deno.args, {
+  boolean: ["--all", "--json", "--cuisines"],
+  value: ["--cuisine", "--limit", "--source"],
+  optional: ["--promo"],
+});
+
+const arg = (name: string) =>
+  Deno.args.find((a) => a.startsWith(`${name}=`))?.slice(name.length + 1);
 
 const flags = new Set(Deno.args.filter((a) => a.startsWith("--")));
 const keyword = Deno.args.filter((a) => !a.startsWith("--")).join(" ");
 const all = flags.has("--all");
-const limit = Number(
-  Deno.args.find((a) => a.startsWith("--limit="))?.split("=")[1] ?? 64,
-);
-const only = Deno.args.find((a) => a.startsWith("--source="))?.split("=")[1] as
-  | Source
-  | undefined;
+const limit = intFlag(arg("--limit"), "--limit", 64);
+
+const SOURCES: Source[] = ["grab", "gofood"];
+const only = arg("--source") as Source | undefined;
+if (only && !SOURCES.includes(only)) {
+  die(`--source must be ${SOURCES.join(" or ")}, got "${only}"`);
+}
 // Substring, not equality: the tags are the providers' own free text ("Ayam
 // Goreng", "Hidangan Ayam", "Ayam Geprek"), so --cuisine=ayam should catch all
 // three rather than making you guess the exact label. --cuisines lists them.
-const cuisine = Deno.args.find((a) => a.startsWith("--cuisine="))
-  ?.split("=")[1]?.toLowerCase();
+const cuisine = arg("--cuisine")?.toLowerCase();
 // `--promo` alone means any live offer, `--promo=50` at least 50% off. Percent
 // is the only unit both apps state, so it is the only one worth a threshold;
 // "Diskon Rp30.000" has no percent and so only survives the bare flag.
-const promoArg = Deno.args.find((a) =>
-  a === "--promo" || a.startsWith("--promo=")
-);
-const promoMin = promoArg === undefined
-  ? undefined
-  : Number(promoArg.split("=")[1] ?? 0) || 0;
-const bestPct = (m: Merchant) =>
-  Math.max(
-    0,
-    ...m.promos.flatMap((p) =>
-      [...p.matchAll(/(\d+)\s*%/g)].map((x) => Number(x[1]))
-    ),
-  );
+const promoRaw = arg("--promo");
+let promoMin: number | undefined;
+if (flags.has("--promo") || promoRaw !== undefined) {
+  if (promoRaw === undefined) {
+    promoMin = 0;
+  } else {
+    const n = Number(promoRaw.replace(/%$/, ""));
+    if (!Number.isInteger(n) || n < 1 || n > 100) {
+      die(
+        `--promo must be a percentage from 1 to 100, got "${promoRaw}"`,
+        "pass --promo on its own for any offer at all",
+      );
+    }
+    promoMin = n;
+  }
+}
 
 const loc = location();
 
@@ -66,8 +84,18 @@ const visible = all ? scanned : scanned.filter((m) => m.open);
 const list = visible.filter((m) =>
   (!cuisine || m.cuisine.some((c) => c.toLowerCase().includes(cuisine))) &&
   (promoMin === undefined ||
-    (m.promos.length > 0 && bestPct(m) >= promoMin))
+    (m.promos.length > 0 && bestPromoPct(m) >= promoMin))
 );
+
+// A rupiah offer states no percent, so any numeric threshold drops it even
+// when it is the better deal. Count them so the gap is visible instead of the
+// offer just looking absent.
+const shown = new Set(list);
+const rupiahOnly = promoMin
+  ? visible.filter((m) =>
+    !shown.has(m) && m.promos.length > 0 && bestPromoPct(m) === 0
+  ).length
+  : 0;
 
 // Which categories are actually around you, so --cuisine is a pick and not a
 // guess. Counted over what you would otherwise see, so it respects --all.
@@ -157,6 +185,13 @@ console.log(table(
 ));
 
 warnings();
+if (rupiahOnly) {
+  console.log(
+    `\nnote: ${rupiahOnly} more have an offer priced in rupiah with no ` +
+      `percent, so --promo=${promoMin} cannot rank them; use --promo alone ` +
+      `to include them.`,
+  );
+}
 if (!list.length) {
   console.log(
     // A cuisine that matched nothing is a bad guess at the tag, not an empty

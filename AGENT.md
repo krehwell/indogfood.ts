@@ -63,6 +63,32 @@ next: deno task menu <id>
 Menu rows are `category|item|price_rp|available|note`. `price_rp` is whole
 rupiah as an integer (`7500`), never `7.5`.
 
+## When a run does not do what you expected
+
+Arguments are checked before anything is fetched, so a mistake stops the run
+with `error:` on stderr and exit code 2. Read it and fix the command; do not
+retry the same thing, and do not report it to the user as "no restaurants".
+
+```
+$ deno task resto --cusine=ayam
+error: unknown flag "--cusine"
+  did you mean --cuisine?
+  known: --all  --cuisine  --cuisines  --json  --limit  --promo  --source
+```
+
+Exit 2 is a bad argument, exit 1 is a missing id or a missing address in `.env`,
+exit 0 with a `warning:` line means one app failed and the other's results are
+real. An empty table always says which of these it is, so quote that line rather
+than inventing a reason:
+
+- `(nothing open right now; ...)` genuinely nothing open, `--all` shows closed.
+- `(no "x" among N nearby; run --cuisines ...)` the tag matched nothing, but N
+  restaurants are there. Wrong tag, not an empty area.
+- `(nothing at N% or more among ...)` no offer that large; try a lower number.
+- `note: N more have an offer priced in rupiah ...` those N were excluded only
+  because their discount states no percent. Mention them, they may be the better
+  deal.
+
 ## Notes
 
 - "Open" is each app's own server-side status, already correct for the current

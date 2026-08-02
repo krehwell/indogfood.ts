@@ -51,6 +51,23 @@ export type Menu = {
 };
 
 /**
+ * Highest percentage stated across a merchant's offers.
+ *
+ * 0 means no offer states a percent, which is not the same as no discount:
+ * "Diskon Rp30.000" is worth more than "Diskon 10%" on a small order but
+ * scores 0 here. Callers thresholding on this must say so, or a real offer
+ * looks absent.
+ */
+export function bestPromoPct(m: Merchant): number {
+  return Math.max(
+    0,
+    ...m.promos.flatMap((p) =>
+      [...p.matchAll(/(\d+)\s*%/g)].map((x) => Number(x[1]))
+    ),
+  );
+}
+
+/**
  * Every result is scoped to a delivery address, so a wrong one gives silently
  * wrong answers. There is no safe default, hence the hard failure.
  */

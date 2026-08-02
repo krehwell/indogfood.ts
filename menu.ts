@@ -2,6 +2,9 @@ import * as grab from "./net/grab.ts";
 import * as gofood from "./net/gofood.ts";
 import { location } from "./net/types.ts";
 import { header, nowLine, table } from "./util/report.ts";
+import { checkFlags, die } from "./util/flags.ts";
+
+checkFlags(Deno.args, { boolean: ["--all", "--json"], value: [] });
 
 const flags = new Set(Deno.args.filter((a) => a.startsWith("--")));
 const id = Deno.args.find((a) => !a.startsWith("--"));
@@ -16,9 +19,17 @@ if (!id) {
 
 const loc = location();
 // Grab merchant ids are "6-XXXX"; GoFood ids are slugs ending in a uuid.
-const m = /^\d+-[A-Z0-9]+$/.test(id)
-  ? await grab.menu(loc, id)
-  : await gofood.menu(loc, id);
+const isGrab = /^\d+-[A-Z0-9]+$/.test(id);
+// A bad id otherwise surfaces as an unhandled rejection and a stack trace,
+// which buries the one thing worth saying: the id did not resolve.
+const m = await (isGrab ? grab.menu(loc, id) : gofood.menu(loc, id))
+  .catch((e: Error) =>
+    die(
+      `could not read the ${isGrab ? "GrabFood" : "GoFood"} menu for "${id}"`,
+      e.message.split("\n")[0],
+      "ids come from `deno task resto`; pass the whole id including the uuid",
+    )
+  );
 
 const rows = m.categories.flatMap((c) =>
   c.items

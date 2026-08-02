@@ -1,4 +1,4 @@
-import { assertEquals } from "jsr:@std/assert@1";
+import { assertEquals } from "@std/assert";
 import { todayHours } from "./gofood.ts";
 
 const hm = (h: number, m = 0) => ({ hours: h, minutes: m });

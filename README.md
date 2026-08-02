@@ -38,6 +38,11 @@ Restaurant IDs come from `deno task resto`. Giving this to an agent? Feed it
 `ayam` catches both Grab's `Hidangan Ayam` and GoFood's `Ayam & bebek`. Run
 `--cuisines` first to see the real vocabulary instead of guessing.
 
+Arguments are checked before anything is fetched, so a typo stops the run with a
+suggestion rather than quietly ignoring the flag and handing back an unfiltered
+list. An empty result always says which kind of empty it is: nothing open,
+nothing matching that tag, or nothing at that discount.
+
 `--promo` reads each app's real offer text, not Grab's `hasPromo` flag, which is
 true for 89 of 96 merchants nearby and so filters nothing. Almost everyone is
 running something, so the useful form is the threshold `--promo=50`. Percent is
