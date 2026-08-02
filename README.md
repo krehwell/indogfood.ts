@@ -32,7 +32,7 @@ deno task menu <id> --all        # include out-of-stock items
 ```
 
 Restaurant IDs come from `deno task resto`. Giving this to an agent? Feed it
-[AGENT.md](AGENT.md).
+[AGENTS.md](AGENTS.md).
 
 `--cuisine` matches the apps' own tags by substring, so short roots work best:
 `ayam` catches both Grab's `Hidangan Ayam` and GoFood's `Ayam & bebek`. Run
