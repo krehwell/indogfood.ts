@@ -27,6 +27,7 @@ deno task resto --source=gofood  # one provider only (grab | gofood)
 deno task resto --limit=200      # page deeper on Grab (default 64)
 deno task menu <id>              # full menu; provider inferred from the id
 deno task menu <id> --all        # include out-of-stock items
+deno task menu <id> --promo      # only items with a cut price (Grab only)
 
 # add --json to either for a parsed object instead of the text report
 ```
@@ -42,6 +43,11 @@ Arguments are checked before anything is fetched, so a typo stops the run with a
 suggestion rather than quietly ignoring the flag and handing back an unfiltered
 list. An empty result always says which kind of empty it is: nothing open,
 nothing matching that tag, or nothing at that discount.
+
+Menus carry a `was_rp` column because Grab already quotes the reduced figure as
+the price, so a cut item used to look like a normal one. Only Grab discounts
+individual items; GoFood's offers sit on the outlet and apply to the whole cart
+against a minimum spend, which is what the `discount:` line spells out.
 
 `--promo` reads each app's real offer text, not Grab's `hasPromo` flag, which is
 true for 89 of 96 merchants nearby and so filters nothing. Almost everyone is

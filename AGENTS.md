@@ -33,6 +33,7 @@ deno task resto --limit=200      # page deeper on Grab (default 64)
 deno task resto --source=gofood  # one provider only (grab | gofood)
 deno task menu 6-C6WXGYDDC24GC2  # full menu; provider inferred from the id
 deno task menu <id> --all        # include out-of-stock items
+deno task menu <id> --promo      # only items with a cut price (Grab only)
 deno task test                   # run deterministic unit tests
 ```
 
@@ -65,8 +66,17 @@ next: deno task menu <id>
 `6-XXXXXXXX`, GoFood ids are slugs ending in a uuid. Pass either straight to
 `deno task menu`; it routes to the right provider.
 
-- Menu rows are `category|item|price_rp|available|note`. `price_rp` is whole
-  rupiah as an integer (`7500`), never `7.5`.
+- Menu rows are `category|item|price_rp|was_rp|available|note`. `price_rp` is
+  whole rupiah as an integer (`7500`), never `7.5`, and is always what the user
+  pays now. `was_rp` is the price before the item's discount, or `-` when it is
+  not discounted.
+- Per-item discounts are a Grab thing only. The `discount:` line says which case
+  you are in: Grab gives `11 of 98 items cut, up to Rp90.000 off`, GoFood gives
+  `not per item on GoFood; its offers apply to the whole cart`. On GoFood the
+  saving lives on the outlet with a minimum spend, so look at the `promo` column
+  from `deno task resto`, not the menu. Quote `price_rp` as the price and
+  `was_rp` only to show the saving; never add them up or infer a cart total,
+  since delivery, fees and outlet-level offers are not in this data.
 - Read the `stock:` line before trusting the `available` column, because only
   one app reports it. GoFood has a real per-item status and outlets use it, so
   `3 of 72 out of stock` is a fact and those rows are genuinely unavailable.

@@ -256,6 +256,10 @@ export async function menu(loc: Location, slug: string): Promise<Menu> {
       items: (sec.items ?? []).map((i: any): MenuItem => ({
         name: i.displayName,
         priceRp: Number(i.price?.units ?? 0),
+        // GoFood menu items carry one price and no discount fields at all; its
+        // offers sit on the outlet and are applied to the cart against a
+        // minimum spend, so there is no per-item "was" price to report.
+        priceBeforeRp: null,
         // Item_Status: 1 ACTIVE, 2 INACTIVE, 3 OUT_OF_STOCK, 4 DELETED.
         available: i.status === 1,
         description: i.description ?? "",

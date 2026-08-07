@@ -116,6 +116,10 @@ export async function search(
   return out.slice(0, limit);
 }
 
+/** Grab quotes money in minor units: 19750000 is Rp197.500. */
+const rp = (minor: number | null | undefined) =>
+  minor == null ? null : Math.round(minor / 100);
+
 export async function menu(loc: Location, merchantId: string): Promise<Menu> {
   const q = `?latlng=${loc.latitude},${loc.longitude}`;
   // deno-lint-ignore no-explicit-any
@@ -135,15 +139,19 @@ export async function menu(loc: Location, merchantId: string): Promise<Menu> {
     categories: (m.menu?.categories ?? []).map((c: any) => ({
       name: c.name,
       // deno-lint-ignore no-explicit-any
-      items: (c.items ?? []).map((i: any): MenuItem => ({
-        name: i.name,
-        priceRp: Math.round(
-          (i.discountedPriceV2?.amountInMinor ?? i.priceV2?.amountInMinor ??
-            i.priceInMinorUnit ?? 0) / 100,
-        ),
-        available: i.available !== false,
-        description: i.description ?? "",
-      })),
+      items: (c.items ?? []).map((i: any): MenuItem => {
+        const now = rp(i.discountedPriceV2?.amountInMinor);
+        const was = rp(i.priceV2?.amountInMinor ?? i.priceInMinorUnit);
+        return {
+          name: i.name,
+          priceRp: now ?? was ?? 0,
+          // Grab sends both fields even at full price, so only a genuinely
+          // lower discounted price counts as a discount.
+          priceBeforeRp: now != null && was != null && was > now ? was : null,
+          available: i.available !== false,
+          description: i.description ?? "",
+        };
+      }),
     })),
   };
 }

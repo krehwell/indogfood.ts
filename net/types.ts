@@ -36,6 +36,15 @@ export type MenuItem = {
   name: string;
   /** Whole rupiah. Providers send minor units or "7.500" display strings. */
   priceRp: number;
+  /**
+   * Price before the item's own discount, or null when it is not discounted.
+   *
+   * Always null on GoFood, which has no per-item discount at all: its menu
+   * items carry a single price and the offers live on the outlet, applied to
+   * the cart against a minimum spend. So null means "not discounted" on Grab
+   * and "this app does not do per-item discounts" on GoFood.
+   */
+  priceBeforeRp: number | null;
   available: boolean;
   description: string;
 };
