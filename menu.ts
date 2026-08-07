@@ -36,6 +36,22 @@ const rows = m.categories.flatMap((c) =>
     .map((i) => [c.name, i.name, i.priceRp, i.available, i.description])
 );
 
+/**
+ * Only GoFood actually reports stock. It has an item status enum with an
+ * explicit OUT_OF_STOCK, and outlets do use it. Grab's guest menu sends
+ * `available: true` or omits the field entirely: across 644 items from 8
+ * merchants, not one came back false. So a Grab menu reading "all available"
+ * means the provider said nothing, not that the kitchen confirmed anything,
+ * and the header has to say which of the two it is.
+ */
+const allItems = m.categories.flatMap((c) => c.items);
+const outOfStock = allItems.filter((i) => !i.available).length;
+const stockLine = m.source === "grab"
+  ? "not reported by Grab; every item reads available"
+  : outOfStock
+  ? `${outOfStock} of ${allItems.length} out of stock`
+  : `all ${allItems.length} in stock`;
+
 if (flags.has("--json")) {
   console.log(JSON.stringify({ now: new Date().toISOString(), ...m }, null, 2));
   Deno.exit(0);
@@ -47,9 +63,9 @@ console.log(header("indogfood menu", {
   status: `${m.open ? "open" : "CLOSED"} hours=${m.hours}`,
   address: m.address || "-",
   now: nowLine().slice(5),
-  items: `${rows.length} ${
-    flags.has("--all") ? "total" : "available"
-  } in ${m.categories.length} categories`,
+  items:
+    `${rows.length} shown of ${allItems.length} in ${m.categories.length} categories`,
+  stock: stockLine,
   currency: "IDR, price_rp is whole rupiah",
 }));
 

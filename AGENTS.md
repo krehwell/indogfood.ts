@@ -67,6 +67,16 @@ next: deno task menu <id>
 
 - Menu rows are `category|item|price_rp|available|note`. `price_rp` is whole
   rupiah as an integer (`7500`), never `7.5`.
+- Read the `stock:` line before trusting the `available` column, because only
+  one app reports it. GoFood has a real per-item status and outlets use it, so
+  `3 of 72 out of stock` is a fact and those rows are genuinely unavailable.
+  Grab prints `not reported by Grab; every item reads available`: its guest menu
+  sends `available: true` or omits the field, and across 644 items from 8
+  merchants none came back false. So `yes` on a Grab row means Grab said
+  nothing, not that the kitchen confirmed stock. Never tell the user a Grab item
+  is in stock; recommend it and let checkout decide, or say the app does not
+  publish stock. For GoFood you may state it, and `--all` is what reveals the
+  out-of-stock rows since they are hidden by default.
 - Treat menu photos as weak evidence. They may be stock, heavily styled, reused,
   or materially unlike the delivered portion. Base ingredient and calorie
   judgments primarily on the written item name, description, selectable options,
