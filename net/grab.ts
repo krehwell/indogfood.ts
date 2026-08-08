@@ -3,6 +3,20 @@ import type { Location, Menu, MenuItem, Merchant } from "./types.ts";
 import { warpClient } from "./warpClient.ts";
 
 const PORTAL = "https://portal.grab.com/foodweb/guest/v2";
+
+/**
+ * Grab's own share link, the one its "share this restaurant" button produces.
+ * It is a deep link: on a phone it opens the Grab app on the outlet, elsewhere
+ * it 308s to `food.grab.com/id/<lang>/restaurant/online-delivery/<id>`.
+ *
+ * The API returns this as `merchantShareLink.shareLink` with the source left as
+ * a literal `{sourceID}` placeholder for the client to fill. It is only
+ * attribution: every value tried redirected to the same outlet, so 0 stands for
+ * "no campaign". Building it from the id instead of reading the field keeps
+ * `search` to one request, and it was checked against all three id shapes Grab
+ * issues, including the ones that already start with `6-`.
+ */
+const shareUrl = (id: string) => `https://r.grab.com/g/6-0-${id}`;
 const UA =
   "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:133.0) Gecko/20100101 Firefox/133.0";
 
@@ -69,6 +83,7 @@ function toMerchant(m: any): Merchant {
     rating: b.rating || null,
     votes: b.vote_count ?? 0,
     etaMinutes: m.estimatedDeliveryTime ?? null,
+    url: shareUrl(m.id),
   };
 }
 
@@ -135,6 +150,10 @@ export async function menu(loc: Location, merchantId: string): Promise<Menu> {
     open: m.openingHours?.open === true,
     hours: m.openingHours?.displayedHours ?? "?",
     address: m.address?.combined_address ?? "",
+    // Prefer what Grab sent, filling the placeholder it leaves for the client.
+    url: typeof m.merchantShareLink?.shareLink === "string"
+      ? m.merchantShareLink.shareLink.replace("{sourceID}", "0")
+      : shareUrl(merchantId),
     // deno-lint-ignore no-explicit-any
     categories: (m.menu?.categories ?? []).map((c: any) => ({
       name: c.name,

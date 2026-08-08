@@ -44,6 +44,12 @@ suggestion rather than quietly ignoring the flag and handing back an unfiltered
 list. An empty result always says which kind of empty it is: nothing open,
 nothing matching that tag, or nothing at that discount.
 
+Every row carries a `link` that opens that outlet, in the app on a phone and in
+the browser otherwise, so a recommendation is one tap from ordering. Grab's is
+its own share link via `r.grab.com`, which is why it survives all three id
+formats Grab issues; GoFood has no deep link, so that one is the outlet's web
+page.
+
 Menus carry a `was_rp` column because Grab already quotes the reduced figure as
 the price, so a cut item used to look like a normal one. Only Grab discounts
 individual items; GoFood's offers sit on the outlet and apply to the whole cart

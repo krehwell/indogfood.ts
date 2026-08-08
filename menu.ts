@@ -91,6 +91,7 @@ if (flags.has("--json")) {
 console.log(header("indogfood menu", {
   source: m.source,
   restaurant: `${m.name} (${m.id})`,
+  link: m.url,
   status: `${m.open ? "open" : "CLOSED"} hours=${m.hours}`,
   address: m.address || "-",
   now: nowLine().slice(5),

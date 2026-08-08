@@ -168,6 +168,7 @@ console.log(table(
     "cuisine",
     "promo",
     "name",
+    "link",
   ],
   list.map((m) => [
     m.source,
@@ -181,6 +182,7 @@ console.log(table(
     m.cuisine.join(", "),
     m.promos.join(" / "),
     m.name,
+    m.url,
   ]),
 ));
 

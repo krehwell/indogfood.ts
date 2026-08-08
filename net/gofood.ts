@@ -182,8 +182,15 @@ function toMerchant(o: any): Merchant {
     rating: o.ratings?.average || null,
     votes: o.ratings?.total ?? 0,
     etaMinutes: o.delivery?.etaRange?.min ?? null,
+    // GoFood publishes no deep link, so this is the outlet's own web page.
+    // `path` already starts with a slash and carries the service area.
+    url: outletUrl(o.path),
   };
 }
+
+/** `/banda-aceh/restaurant/<slug>` as sent, into a link that opens. */
+const outletUrl = (path: unknown) =>
+  typeof path === "string" && path.startsWith("/") ? `${HOST}${path}` : HOST;
 
 /**
  * Search outlets near the address.
@@ -249,6 +256,11 @@ export async function menu(loc: Location, slug: string): Promise<Menu> {
     open: OPEN_STATUS.has(core.status),
     hours: todayHours(core.openPeriods, core.timeZone ?? "Asia/Jakarta"),
     address: core.brand?.name ?? "",
+    // The outlet carries its own path; the service area we already resolved is
+    // the fallback, since that is exactly how this menu was just fetched.
+    url: o.path
+      ? outletUrl(o.path)
+      : `${HOST}/${s.serviceArea}/restaurant/${slug}`,
     // deno-lint-ignore no-explicit-any
     categories: (o.catalog?.sections ?? []).map((sec: any) => ({
       name: sec.displayName || sec.internalName || "(unnamed)",

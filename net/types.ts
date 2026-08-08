@@ -30,6 +30,8 @@ export type Merchant = {
   rating: number | null;
   votes: number;
   etaMinutes: number | null;
+  /** Opens this outlet, in the app on a phone and in the browser otherwise. */
+  url: string;
 };
 
 export type MenuItem = {
@@ -56,6 +58,8 @@ export type Menu = {
   open: boolean;
   hours: string;
   address: string;
+  /** Same link as the listing, so an order can be started from here. */
+  url: string;
   categories: { name: string; items: MenuItem[] }[];
 };
 

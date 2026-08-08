@@ -55,9 +55,9 @@ now: 2026-08-02 03:55:12 Asia/Jakarta (2026-08-01T20:55:12.350Z)
 query: keyword="sate" showing=open-only scanned=128 matched=18
 sources: grab=64 gofood=64
 
-src|id|open|km|eta_min|rating|votes|hours|cuisine|promo|name
-grab|6-C6WXGYDDC24GC2|yes|4.0|26|4.7|878|00:00-23:59|Minuman|Diskon 50% / Diskon Rp15.000|Sate Apaleh - Batoh
-gofood|sate-kacang-nusantara-de9561db-...|yes|0.4|15|4.2|-|18:00-23:59|Sate|Diskon 15%, maks. 24rb (Min. pembelian 50rb)|Sate Kacang Nusantara
+src|id|open|km|eta_min|rating|votes|hours|cuisine|promo|name|link
+grab|6-C6WXGYDDC24GC2|yes|4.0|26|4.7|878|00:00-23:59|Minuman|Diskon 50% / Diskon Rp15.000|Sate Apaleh - Batoh|https://r.grab.com/g/6-0-6-C6WXGYDDC24GC2
+gofood|sate-kacang-nusantara-de9561db-...|yes|0.4|15|4.2|-|18:00-23:59|Sate|Diskon 15%, maks. 24rb (Min. pembelian 50rb)|Sate Kacang Nusantara|https://gofood.co.id/banda-aceh/restaurant/sate-kacang-nusantara-de9561db-...
 
 next: deno task menu <id>
 ```
@@ -65,6 +65,13 @@ next: deno task menu <id>
 `src` tells you which app, and `id` is that app's own handle: Grab ids look like
 `6-XXXXXXXX`, GoFood ids are slugs ending in a uuid. Pass either straight to
 `deno task menu`; it routes to the right provider.
+
+`link` opens that outlet, in the app on a phone and in the browser otherwise.
+Include it whenever you recommend a restaurant, since it saves the user hunting
+for the place by name. Copy it exactly and never build one yourself: Grab's is
+its own share link and GoFood's carries a service area and a uuid, so a
+hand-made URL lands on the wrong outlet or nothing. The same link is on the
+`link:` line of `deno task menu`.
 
 - Menu rows are `category|item|price_rp|was_rp|available|note`. `price_rp` is
   whole rupiah as an integer (`7500`), never `7.5`, and is always what the user

@@ -37,6 +37,7 @@ const m = (...promos: string[]): Merchant => ({
   rating: null,
   votes: 0,
   etaMinutes: null,
+  url: "",
 });
 
 Deno.test("no offers scores 0 rather than -Infinity", () => {
