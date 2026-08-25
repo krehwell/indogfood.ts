@@ -37,6 +37,8 @@ const m = (...promos: string[]): Merchant => ({
   rating: null,
   votes: 0,
   etaMinutes: null,
+  price: null,
+  rank: null,
   url: "",
 });
 

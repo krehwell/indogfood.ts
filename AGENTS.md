@@ -1,23 +1,43 @@
 # indogfood.ts: agent instructions
 
 Find open restaurants near the user's address and read their menus, so you can
-pick items (e.g. that fit their diet plan). Read-only: you never place an order;
-the user orders themselves. Run everything from this directory.
+pick items (e.g. that fit their diet plan), or pick a place worth going to in
+person. Read-only: you never place an order; the user orders or goes themselves.
+Run everything from this directory.
 
 All external network traffic exits through Cloudflare WARP at
 `socks5://127.0.0.1:40000`: Deno HTTP calls share `net/warpClient.ts`, while the
 headless Chromium token flow uses the same SOCKS proxy via its launch flags.
 
-GrabFood and GoFood are both queried and merged into one list sorted by
-distance, so the same restaurant may appear twice, once per app, with slightly
-different prices, distance and ETA. Say which app an item came from when you
-recommend it, because that decides where the user orders.
+GrabFood, GoFood and Google Maps are all queried and merged into one list sorted
+by distance, so the same restaurant may appear more than once, once per source,
+with slightly different prices, distance and ETA. Say which source an item came
+from when you recommend it, because that decides where the user orders. Google
+Maps rows are places to go to or to look up on Grab/GoFood by name; they have no
+menu and nothing can be ordered from them.
 
 ## Workflow
 
+Ordering in:
+
 1. `deno task resto [keyword]` lists open restaurants. Take the `id` column.
-2. `deno task menu <id>` prints that restaurant's full menu.
+2. `deno task menu <id>` prints that restaurant's full menu (Grab and GoFood ids
+   only).
 3. Recommend items to the user; they order.
+
+Going out to eat:
+
+1. `deno task resto --source=gmaps <what they feel like>` lists places from
+   Google Maps. Write the keyword the way a person would ("seafood dan oyster",
+   "sarapan sehat"), Google reads it as intent, not as a name match.
+2. Shortlist by `rating` together with `votes` and `rank`, never rating alone
+   (see below), and by `price` against what the user wants to spend.
+3. `deno task place <id>` on the two or three candidates: hours for the day they
+   are going, how busy it is now, the price range with how many people reported
+   it, what Google calls popular there, dine-in and diet attributes, and what
+   recent reviews actually say.
+4. Recommend one place with the `link`, the hours, and the price range, and say
+   what the reviews praise or warn about. The user goes.
 
 ## Commands
 
@@ -30,14 +50,15 @@ deno task resto --promo          # only ones with a live offer
 deno task resto --promo=50       # only offers of 50% or more
 deno task resto --all            # include closed ones
 deno task resto --limit=200      # page deeper on Grab (default 64)
-deno task resto --source=gofood  # one provider only (grab | gofood)
+deno task resto --source=gofood  # one provider only (grab | gofood | gmaps)
 deno task menu 6-C6WXGYDDC24GC2  # full menu; provider inferred from the id
 deno task menu <id> --all        # include out-of-stock items
 deno task menu <id> --promo      # only items with a cut price (Grab only)
+deno task place 0x2e69...:0x3d2a...  # one Google Maps place in depth
 deno task test                   # run deterministic unit tests
 ```
 
-Add `--json` to either for a parsed object instead of the text report. The
+Add `--json` to any of them for a parsed object instead of the text report. The
 `deno task` banner goes to stderr, so stdout is clean:
 `deno task resto --json 2>/dev/null` pipes straight into a JSON parser.
 
@@ -53,25 +74,30 @@ the IDs just returned.
 address: Monas, Gambir, Jakarta Pusat (-6.175392,106.827153)
 now: 2026-08-02 03:55:12 Asia/Jakarta (2026-08-01T20:55:12.350Z)
 query: keyword="sate" showing=open-only scanned=128 matched=18
-sources: grab=64 gofood=64
+sources: grab=64 gofood=64 gmaps=64
 
-src|id|open|km|eta_min|rating|votes|hours|cuisine|promo|name|link
-grab|6-C6WXGYDDC24GC2|yes|4.0|26|4.7|878|00:00-23:59|Minuman|Diskon 50% / Diskon Rp15.000|Sate Apaleh - Batoh|https://r.grab.com/g/6-0-6-C6WXGYDDC24GC2
-gofood|sate-kacang-nusantara-de9561db-...|yes|0.4|15|4.2|-|18:00-23:59|Sate|Diskon 15%, maks. 24rb (Min. pembelian 50rb)|Sate Kacang Nusantara|https://gofood.co.id/banda-aceh/restaurant/sate-kacang-nusantara-de9561db-...
+src|id|open|km|eta_min|rating|votes|rank|price|hours|cuisine|promo|name|link
+grab|6-C6WXGYDDC24GC2|yes|4.0|26|4.7|878|-|-|00:00-23:59|Minuman|Diskon 50% / Diskon Rp15.000|Sate Apaleh - Batoh|https://r.grab.com/g/6-0-6-C6WXGYDDC24GC2
+gofood|sate-kacang-nusantara-de9561db-...|yes|0.4|15|4.2|-|-|-|18:00-23:59|Sate|Diskon 15%, maks. 24rb (Min. pembelian 50rb)|Sate Kacang Nusantara|https://gofood.co.id/banda-aceh/restaurant/sate-kacang-nusantara-de9561db-...
+gmaps|0x2e69f5d2e764b12d:0x3d2ad6ea86e3f1c9|yes|1.2|-|4.5|477|1|Rp 25.000-50.000|Tutup pukul 22.00|Sate|-|Sate Khas Senayan|https://maps.google.com/?cid=4407571488109228489
 
-next: deno task menu <id>
+next: deno task menu <id> for grab and gofood rows, deno task place <id> for gmaps rows
 ```
 
-`src` tells you which app, and `id` is that app's own handle: Grab ids look like
-`6-XXXXXXXX`, GoFood ids are slugs ending in a uuid. Pass either straight to
-`deno task menu`; it routes to the right provider.
+`src` tells you which source, and `id` is that source's own handle: Grab ids
+look like `6-XXXXXXXX`, GoFood ids are slugs ending in a uuid, Google Maps ids
+are two hex halves `0x...:0x...`. Pass a Grab or GoFood id straight to
+`deno task menu`; it routes to the right provider. A Google Maps id goes to
+`deno task place` instead; `menu` refuses it with exit 2 because Maps publishes
+no menu. To order from a place you found on Maps, search its name with
+`deno task resto <name>` and see whether Grab or GoFood carries it.
 
-`link` opens that outlet, in the app on a phone and in the browser otherwise.
-Include it whenever you recommend a restaurant, since it saves the user hunting
-for the place by name. Copy it exactly and never build one yourself: Grab's is
-its own share link and GoFood's carries a service area and a uuid, so a
-hand-made URL lands on the wrong outlet or nothing. The same link is on the
-`link:` line of `deno task menu`.
+`link` opens that outlet, in the app on a phone and in the browser otherwise
+(Google Maps rows open the place in Maps). Include it whenever you recommend a
+restaurant, since it saves the user hunting for the place by name. Copy it
+exactly and never build one yourself: Grab's is its own share link and GoFood's
+carries a service area and a uuid, so a hand-made URL lands on the wrong outlet
+or nothing. The same link is on the `link:` line of `deno task menu`.
 
 - Menu rows are `category|item|price_rp|was_rp|available|note`. `price_rp` is
   whole rupiah as an integer (`7500`), never `7.5`, and is always what the user
@@ -127,7 +153,24 @@ than inventing a reason:
 ## Notes
 
 - "Open" is each app's own server-side status, already correct for the current
-  time - don't second-guess it against the `hours` column.
+  time - don't second-guess it against the `hours` column. On Google Maps rows
+  `open` can be `-`: Google lists no hours for that place, so it is shown rather
+  than hidden, and you do not know whether it is open. Say so.
+- Google Maps `hours` is Google's own text, not a range: `Tutup pukul 22.00` on
+  an open place is when it closes, `Buka pukul 10.00` on a closed one is when it
+  opens, `Buka 24 jam` is all day. `km` is straight-line, not a delivery route.
+  `cuisine` is Google's place type (`Restoran Padang`, `Kedai Kopi`,
+  `Pasar ikan`), so it can be a shop or market, not only restaurants.
+- Google understands the keyword the way a person types it:
+  `seafood dan
+  oyster` returns places that serve those, not only ones with the
+  words in their name. When the user describes food rather than a restaurant,
+  Google Maps rows are the ones most likely to match; the delivery apps match
+  names and tags more literally.
+- Google Maps rows carry no `promo` or `eta_min`, so `--promo` never matches
+  them and a `-` there is expected, not a failure. `votes` is Google's review
+  count and is usually the largest of the three sources, so it is the better
+  popularity signal when the same place shows up on several.
 - Results are scoped to the address in `.env`; auth is automatic (a cached guest
   token, re-minted headlessly when needed). No login or manual step.
 - A run may take longer about once a month when the token is re-minted; a 401 is

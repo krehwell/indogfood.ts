@@ -1,5 +1,6 @@
 import * as grab from "./net/grab.ts";
 import * as gofood from "./net/gofood.ts";
+import * as gmaps from "./net/gmaps.ts";
 import {
   bestPromoPct,
   location,
@@ -11,7 +12,7 @@ import { checkFlags, die, intFlag } from "./util/flags.ts";
 
 checkFlags(Deno.args, {
   boolean: ["--all", "--json", "--cuisines"],
-  value: ["--cuisine", "--limit", "--source"],
+  value: ["--cuisine", "--limit", "--source", "--rating"],
   optional: ["--promo"],
 });
 
@@ -23,7 +24,7 @@ const keyword = Deno.args.filter((a) => !a.startsWith("--")).join(" ");
 const all = flags.has("--all");
 const limit = intFlag(arg("--limit"), "--limit", 64);
 
-const SOURCES: Source[] = ["grab", "gofood"];
+const SOURCES: Source[] = ["grab", "gofood", "gmaps"];
 const only = arg("--source") as Source | undefined;
 if (only && !SOURCES.includes(only)) {
   die(`--source must be ${SOURCES.join(" or ")}, got "${only}"`);
@@ -52,6 +53,15 @@ if (flags.has("--promo") || promoRaw !== undefined) {
   }
 }
 
+// Opt-in only. A rating is only as good as its vote count, so dropping places
+// by rating alone throws away real ones; the `votes` and `rank` columns are
+// there so the reader can weigh it instead.
+const ratingRaw = arg("--rating");
+const ratingMin = ratingRaw === undefined ? undefined : Number(ratingRaw);
+if (ratingMin !== undefined && !(ratingMin >= 1 && ratingMin <= 5)) {
+  die(`--rating must be a number from 1 to 5, got "${ratingRaw}"`);
+}
+
 const loc = location();
 
 // One provider being down or rate-limited must not hide the other's results,
@@ -67,24 +77,28 @@ async function from(src: Source, run: () => Promise<Merchant[]>) {
   }
 }
 
-const [g, gf] = await Promise.all([
+const [g, gf, gm] = await Promise.all([
   from("grab", () => grab.search(loc, keyword, limit)),
   from(
     "gofood",
     () => keyword ? gofood.search(loc, keyword) : gofood.sweep(loc, limit),
   ),
+  from("gmaps", () => gmaps.search(loc, keyword, limit, !all)),
 ]);
 
 const warnings = () => {
   for (const e of errors) console.log(`\nwarning: ${e}`);
 };
 
-const scanned = [...g, ...gf].sort((a, b) => a.distanceKm - b.distanceKm);
-const visible = all ? scanned : scanned.filter((m) => m.open);
+const scanned = [...g, ...gf, ...gm].sort((a, b) =>
+  a.distanceKm - b.distanceKm
+);
+const visible = all ? scanned : scanned.filter((m) => m.open !== false);
 const list = visible.filter((m) =>
   (!cuisine || m.cuisine.some((c) => c.toLowerCase().includes(cuisine))) &&
   (promoMin === undefined ||
-    (m.promos.length > 0 && bestPromoPct(m) >= promoMin))
+    (m.promos.length > 0 && bestPromoPct(m) >= promoMin)) &&
+  (ratingMin === undefined || (m.rating !== null && m.rating >= ratingMin))
 );
 
 // A rupiah offer states no percent, so any numeric threshold drops it even
@@ -126,6 +140,7 @@ if (flags.has("--json")) {
       query: {
         keyword: keyword || null,
         cuisine: cuisine ?? null,
+        rating: ratingMin ?? null,
         showing: all ? "all" : "open",
       },
       errors,
@@ -144,14 +159,14 @@ console.log(header("indogfood restaurants", {
   now: nowLine().slice(5),
   query: `keyword=${keyword ? JSON.stringify(keyword) : "-"}${
     cuisine ? ` cuisine=${JSON.stringify(cuisine)}` : ""
-  }${
+  }${ratingMin === undefined ? "" : ` rating>=${ratingMin}`}${
     promoMin === undefined
       ? ""
       : ` promo=${promoMin ? `>=${promoMin}%` : "any"}`
   } showing=${
     all ? "all" : "open-only"
   } scanned=${scanned.length} matched=${list.length}`,
-  sources: `grab=${g.length} gofood=${gf.length}`,
+  sources: `grab=${g.length} gofood=${gf.length} gmaps=${gm.length}`,
 }));
 
 console.log();
@@ -164,6 +179,8 @@ console.log(table(
     "eta_min",
     "rating",
     "votes",
+    "rank",
+    "price",
     "hours",
     "cuisine",
     "promo",
@@ -178,6 +195,8 @@ console.log(table(
     m.etaMinutes,
     m.rating,
     m.votes || null,
+    m.rank,
+    m.price,
     m.hours,
     m.cuisine.join(", "),
     m.promos.join(" / "),
@@ -206,9 +225,15 @@ if (!list.length) {
       : cuisine && visible.length
       ? `(no ${JSON.stringify(cuisine)} among ${visible.length} nearby; ` +
         `run --cuisines to see what is)`
+      : ratingMin !== undefined && visible.length
+      ? `(nothing rated ${ratingMin} or more among ${visible.length} nearby; ` +
+        `lower --rating, or drop it and weigh rating against votes yourself)`
       : all
       ? "(nothing nearby; check FOOD_LAT/FOOD_LNG)"
       : "(nothing open right now; re-run with --all to see closed ones)",
   );
 }
-console.log(`\nnext: deno task menu <id>`);
+console.log(
+  "\nnext: deno task menu <id> for grab and gofood rows, " +
+    "deno task place <id> for gmaps rows",
+);

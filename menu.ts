@@ -1,5 +1,6 @@
 import * as grab from "./net/grab.ts";
 import * as gofood from "./net/gofood.ts";
+import { placeUrl } from "./net/gmaps.ts";
 import { location, sourceOf } from "./net/types.ts";
 import { header, nowLine, table } from "./util/report.ts";
 import { checkFlags, die } from "./util/flags.ts";
@@ -18,6 +19,14 @@ if (!id) {
 }
 
 const loc = location();
+if (sourceOf(id) === "gmaps") {
+  die(
+    `"${id}" is a Google Maps place; Maps publishes no menu`,
+    `for its hours, reviews and details run: deno task place ${id}`,
+    `or open it: ${placeUrl(id)}`,
+    "or search the name on Grab/GoFood: deno task resto <name>",
+  );
+}
 const isGrab = sourceOf(id) === "grab";
 // A bad id otherwise surfaces as an unhandled rejection and a stack trace,
 // which buries the one thing worth saying: the id did not resolve.

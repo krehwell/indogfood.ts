@@ -182,6 +182,8 @@ function toMerchant(o: any): Merchant {
     rating: o.ratings?.average || null,
     votes: o.ratings?.total ?? 0,
     etaMinutes: o.delivery?.etaRange?.min ?? null,
+    price: null,
+    rank: null,
     // GoFood publishes no deep link, so this is the outlet's own web page.
     // `path` already starts with a slash and carries the service area.
     url: outletUrl(o.path),

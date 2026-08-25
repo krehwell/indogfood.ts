@@ -111,6 +111,10 @@ export async function browse<T>(
       "--no-default-browser-check",
       "--disable-gpu",
       "--lang=id",
+      // Headless Chrome says so in its UA, and Google Maps answers that with a
+      // "limited view" that hides review counts and prices.
+      "--user-agent=Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) " +
+      "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36",
       "--window-size=1280,2000",
       // Only where WARP is actually listening. Passing this unconditionally
       // points the Mac's Chromium at a dead port, so it reaches nothing and

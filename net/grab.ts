@@ -83,6 +83,8 @@ function toMerchant(m: any): Merchant {
     rating: b.rating || null,
     votes: b.vote_count ?? 0,
     etaMinutes: m.estimatedDeliveryTime ?? null,
+    price: null,
+    rank: null,
     url: shareUrl(m.id),
   };
 }

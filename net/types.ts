@@ -1,6 +1,6 @@
 /** Shared shapes so both providers land in one table. */
 
-export type Source = "grab" | "gofood";
+export type Source = "grab" | "gofood" | "gmaps";
 
 /** The delivery address every provider resolves results against. */
 export type Location = {
@@ -15,7 +15,8 @@ export type Merchant = {
   /** Pass this back to `menu`; each provider's own handle. */
   id: string;
   name: string;
-  open: boolean;
+  /** null when the provider lists no hours at all (Google Maps only). */
+  open: boolean | null;
   hours: string;
   cuisine: string[];
   /**
@@ -30,6 +31,17 @@ export type Merchant = {
   rating: number | null;
   votes: number;
   etaMinutes: number | null;
+  /**
+   * Google's price range per person, as it words it ("Rp 25.000-50.000"), or
+   * null. The delivery apps have no per-person figure, so always null there.
+   */
+  price: string | null;
+  /**
+   * Position in Google's own result order for this query, 1 being first, or
+   * null. Google ranks by relevance and prominence, and the merged table is
+   * re-sorted by distance, so this is the only trace of that ranking left.
+   */
+  rank: number | null;
   /** Opens this outlet, in the app on a phone and in the browser otherwise. */
   url: string;
 };
@@ -66,12 +78,14 @@ export type Menu = {
 /**
  * Which app an id came from, so `menu` can route without being told.
  *
- * Decided on GoFood's shape because it is the stable one: every GoFood id ends
- * in a uuid. Grab issues at least three formats ("6-C7VKLXMASBE3JX",
+ * Google Maps ids are two hex halves, "0x...:0x...", and nothing else looks
+ * like that. Between the other two, decided on GoFood's shape because it is
+ * the stable one: every GoFood id ends in a uuid. Grab issues at least three formats ("6-C7VKLXMASBE3JX",
  * "IDGFSTI00003crn", "AWfPkO00U0GQ11lNiASe"), so matching Grab's first format
  * instead sent chain outlets like KFC to GoFood, where they cannot exist.
  */
 export function sourceOf(id: string): Source {
+  if (/^0x[0-9a-f]+:0x[0-9a-f]+$/i.test(id)) return "gmaps";
   return /[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i.test(id)
     ? "gofood"
     : "grab";
