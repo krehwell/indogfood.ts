@@ -50,12 +50,8 @@ const rows = m.categories.flatMap((c) =>
 );
 
 /**
- * Only GoFood actually reports stock. It has an item status enum with an
- * explicit OUT_OF_STOCK, and outlets do use it. Grab's guest menu sends
- * `available: true` or omits the field entirely: across 644 items from 8
- * merchants, not one came back false. So a Grab menu reading "all available"
- * means the provider said nothing, not that the kitchen confirmed anything,
- * and the header has to say which of the two it is.
+ * Both apps report stock per item. GoFood has an explicit OUT_OF_STOCK status;
+ * Grab omits `available` on sold-out items, which the client turns into false.
  */
 const allItems = m.categories.flatMap((c) => c.items);
 const outOfStock = allItems.filter((i) => !i.available).length;
@@ -77,9 +73,7 @@ const discountLine = m.source === "gofood"
     )
   } off (Rp${saved.toLocaleString("id-ID")} across all)`
   : "nothing discounted right now";
-const stockLine = m.source === "grab"
-  ? "not reported by Grab; every item reads available"
-  : outOfStock
+const stockLine = outOfStock
   ? `${outOfStock} of ${allItems.length} out of stock`
   : `all ${allItems.length} in stock`;
 

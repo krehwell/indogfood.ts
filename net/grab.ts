@@ -167,7 +167,9 @@ export async function menu(loc: Location, merchantId: string): Promise<Menu> {
           // Grab sends both fields even at full price, so only a genuinely
           // lower discounted price counts as a discount.
           priceBeforeRp: now != null && was != null && was > now ? was : null,
-          available: i.available !== false,
+          // Grab drops the key on sold-out items rather than sending false;
+          // its own web app greys out exactly the items missing it.
+          available: i.available === true,
           description: i.description ?? "",
         };
       }),

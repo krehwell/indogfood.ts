@@ -84,16 +84,12 @@ hand-made URL lands on the wrong outlet or nothing. The same link is on the
   from `deno task resto`, not the menu. Quote `price_rp` as the price and
   `was_rp` only to show the saving; never add them up or infer a cart total,
   since delivery, fees and outlet-level offers are not in this data.
-- Read the `stock:` line before trusting the `available` column, because only
-  one app reports it. GoFood has a real per-item status and outlets use it, so
-  `3 of 72 out of stock` is a fact and those rows are genuinely unavailable.
-  Grab prints `not reported by Grab; every item reads available`: its guest menu
-  sends `available: true` or omits the field, and across 644 items from 8
-  merchants none came back false. So `yes` on a Grab row means Grab said
-  nothing, not that the kitchen confirmed stock. Never tell the user a Grab item
-  is in stock; recommend it and let checkout decide, or say the app does not
-  publish stock. For GoFood you may state it, and `--all` is what reveals the
-  out-of-stock rows since they are hidden by default.
+- Both apps report per-item stock, and `available: no` rows are hidden unless
+  you pass `--all`. GoFood has an explicit out-of-stock status. Grab omits the
+  `available` field on sold-out items instead of sending false, and `menu` reads
+  that; its own web app greys out exactly those items. The `stock:` line says
+  how many are out. Stock is a snapshot at fetch time, not a reservation, so
+  recommend what reads available and still let checkout confirm it.
 - Treat menu photos as weak evidence. They may be stock, heavily styled, reused,
   or materially unlike the delivered portion. Base ingredient and calorie
   judgments primarily on the written item name, description, selectable options,
