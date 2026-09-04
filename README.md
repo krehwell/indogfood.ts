@@ -28,9 +28,9 @@ FOOD_ADDRESS="Monas, Gambir, Jakarta Pusat"
 FOOD_COUNTRY=ID
 ```
 
-Get the coordinates from food.grab.com: set your delivery address, then read
-`latitude`/`longitude` from the `location` cookie. Results are scoped to it, so
-a wrong address gives wrong answers.
+`deno task locate "<alamat>" --write` fills those in for you (it geocodes via
+OpenStreetMap and rewrites `.env`). Results are scoped to that point, so a wrong
+address gives wrong answers.
 
 ## Usage
 
@@ -48,6 +48,7 @@ deno task menu <id>              # full menu, provider inferred from the id
 deno task menu <id> --all        # include out-of-stock items
 deno task menu <id> --promo      # only discounted items (Grab only)
 deno task place <id>             # Google Maps details: hours, price, reviews
+deno task locate "<alamat>"      # address -> coordinates; --write updates .env
 ```
 
 Add `--json` to any of them for structured output. IDs come from

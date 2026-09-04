@@ -3,7 +3,8 @@
     "resto": "deno run --allow-net --allow-env --allow-read --allow-write --allow-run --env-file restaurants.ts",
     "menu": "deno run --allow-net --allow-env --allow-read --allow-write --allow-run --env-file menu.ts",
     "test": "deno test --allow-read --allow-env --allow-write --allow-net=127.0.0.1:40000",
-    "place": "deno run --allow-net --allow-env --allow-read --allow-write --allow-run --env-file place.ts"
+    "place": "deno run --allow-net --allow-env --allow-read --allow-write --allow-run --env-file place.ts",
+    "locate": "deno run --allow-net --allow-read=.env --allow-write=.env locate.ts"
   },
   "imports": {
     "@std/assert": "jsr:@std/assert@1"

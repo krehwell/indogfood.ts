@@ -55,6 +55,7 @@ deno task menu 6-C6WXGYDDC24GC2  # full menu; provider inferred from the id
 deno task menu <id> --all        # include out-of-stock items
 deno task menu <id> --promo      # only items with a cut price (Grab only)
 deno task place 0x2e69...:0x3d2a...  # one Google Maps place in depth
+deno task locate "<alamat>" --write  # move the user: address -> FOOD_* in .env
 deno task test                   # run deterministic unit tests
 ```
 
@@ -173,6 +174,10 @@ than inventing a reason:
   popularity signal when the same place shows up on several.
 - Results are scoped to the address in `.env`; auth is automatic (a cached guest
   token, re-minted headlessly when needed). No login or manual step.
+- When the user says they moved or names a new location, run
+  `deno task locate "<alamat mereka>" --write` and read back the `matched:` line
+  so they can confirm it is the right place; every later command then uses it.
+  Without `--write` it only prints the candidates.
 - A run may take longer about once a month when the token is re-minted; a 401 is
   retried automatically. If a run fails outright, report the error, don't
   fabricate restaurants or menus.
